@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	io "io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
@@ -34,28 +36,32 @@ func init() {
 }
 
 func main() {
-
-	ConfigFile := os.Args[1]
-	fmt.Println("Config file found:", ConfigFile)
-	filePath, err := filepath.Abs(ConfigFile)
+	filePath, err := filepath.Abs("config.json")
 	if err != nil {
 		log.Error("Setting file path, ", err)
 		return
 	}
-	fmt.Println("No errors opening file")
+
 	jsonFile, err := os.Open(filePath)
 	if err != nil {
 		log.Error("Opening config, ", err)
 	} else {
 		fmt.Println(jsonFile)
 	}
-	// json.Unmarshal()
-	// Token = os.Args[1]
-	// ChannelId = os.Args[2]
-	// RssFeed = os.Args[3]
+	defer jsonFile.Close()
+	log.Info("No errors opening file")
+
+	byteValue, _ := io.ReadAll(jsonFile)
+	fmt.Println(jsonFile.Name)
+	// stuck here
+	var config Config
+	unmarshalErr := json.Unmarshal(byteValue, &config)
+	if unmarshalErr != nil {
+		fmt.Println(unmarshalErr)
+	}
 
 	// Create a new Discord session using the provided bot token.
-	dg, err := discordgo.New("Bot " + Token)
+	dg, err := discordgo.New("Bot " + config.Token)
 	if err != nil {
 		fmt.Println(err.Error())
 		return

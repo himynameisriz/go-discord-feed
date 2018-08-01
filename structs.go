@@ -1,8 +1,15 @@
 package main
 
+// Config object
 type Config struct {
-	Token string 
-	ChannelId string 
-	RssFeed string 
-	HistoryFile string 
+	Token string
+	Feeds []Feed
+}
+
+//Feed objects
+type Feed struct {
+	FeedName    string
+	ChannelId   string
+	FeedURL     string
+	HistoryFile string
 }

@@ -1,16 +1,16 @@
 {
-    "Token" : "",
+    "Token" : "abc123",
     "Feeds" : [
         {
             "FeedName" : "cheap-dfw-flights",
             "ChannelId" : "",
-            "FeedUrl" : "https://cheapdfw.com/feed/",
+            "FeedURL" : "https://cheapdfw.com/feed/",
             "HistoryFile" : ""
         },
         {
             "FeedName" : "humble-blog",
             "ChannelId" : "",
-            "FeedUrl" : "http://blog.humblebundle.com/rss",
+            "FeedURL" : "http://blog.humblebundle.com/rss",
             "HistoryFile" : ""
         }
     ]
