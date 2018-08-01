@@ -1,5 +1,3 @@
-# cheap-dfw-flights
+# go-discord-feed
 
-The easiest way to run this is:
-
-```go run main.go <bot-token> <channel-id> <rss-feed-link>```
+Currently in the process of making this work through a config file, eliminating the need to add argument variables when calling go run.
