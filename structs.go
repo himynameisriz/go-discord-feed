@@ -8,8 +8,7 @@ type Config struct {
 
 //Feed objects
 type Feed struct {
-	FeedName    string
-	ChannelId   string
-	FeedURL     string
-	HistoryFile string
+	FeedName  string
+	ChannelId string
+	FeedURL   string
 }

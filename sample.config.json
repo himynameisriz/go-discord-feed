@@ -4,14 +4,12 @@
         {
             "FeedName" : "cheap-dfw-flights",
             "ChannelId" : "",
-            "FeedURL" : "https://cheapdfw.com/feed/",
-            "HistoryFile" : ""
+            "FeedURL" : "https://cheapdfw.com/feed/"
         },
         {
             "FeedName" : "humble-blog",
             "ChannelId" : "",
-            "FeedURL" : "http://blog.humblebundle.com/rss",
-            "HistoryFile" : ""
+            "FeedURL" : "http://blog.humblebundle.com/rss"
         }
     ]
 }
