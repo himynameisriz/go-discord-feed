@@ -32,10 +32,10 @@ func init() {
 
 	log.SetFormatter(&log.JSONFormatter{})
 	log.SetOutput(LogFile)
-
 }
 
 func main() {
+	log.Info("Feed reader started")
 	filePath, err := filepath.Abs("config.json")
 	if err != nil {
 		log.Error("Setting file path, ", err)
@@ -45,47 +45,45 @@ func main() {
 	jsonFile, err := os.Open(filePath)
 	if err != nil {
 		log.Error("Opening config, ", err)
-	} else {
-		fmt.Println(jsonFile)
 	}
+
 	defer jsonFile.Close()
 	log.Info("No errors opening file")
 
 	byteValue, _ := io.ReadAll(jsonFile)
-	fmt.Println(jsonFile.Name)
-	// stuck here
 	var config Config
 	unmarshalErr := json.Unmarshal(byteValue, &config)
 	if unmarshalErr != nil {
 		fmt.Println(unmarshalErr)
 	}
+	log.Info("We have some data", config)
 
-	// Create a new Discord session using the provided bot token.
-	dg, err := discordgo.New("Bot " + config.Token)
-	if err != nil {
-		fmt.Println(err.Error())
-		return
-	}
+	// // Create a new Discord session using the provided bot token.
+	// dg, err := discordgo.New("Bot " + config.Token)
+	// if err != nil {
+	// 	fmt.Println(err.Error())
+	// 	return
+	// }
 
-	u, err := dg.User("@me")
-	if err != nil {
-		fmt.Println(err.Error())
-	}
+	// u, err := dg.User("@me")
+	// if err != nil {
+	// 	fmt.Println(err.Error())
+	// }
 
-	botId = u.ID
+	// botId = u.ID
 
-	err = dg.Open()
+	// err = dg.Open()
 
-	if err != nil {
-		fmt.Println(err.Error())
-		return
-	}
+	// if err != nil {
+	// 	fmt.Println(err.Error())
+	// 	return
+	// }
 
-	fmt.Println("Bot is running!")
-	fmt.Println("Starting RSS Feed")
+	// fmt.Println("Bot is running!")
+	// fmt.Println("Starting RSS Feed")
 
-	// go runRssFeed(dg)
-	// <-make(chan struct{})
+	// // go runRssFeed(dg)
+	// // <-make(chan struct{})
 	defer LogFile.Sync()
 	defer LogFile.Close()
 	return
