@@ -11,4 +11,5 @@ type Feed struct {
 	FeedName  string
 	ChannelId string
 	FeedURL   string
+	SleepTime int
 }

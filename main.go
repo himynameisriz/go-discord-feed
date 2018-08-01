@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	io "io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	// "encoding/json"
@@ -17,10 +19,13 @@ import (
 
 var (
 	logFile *os.File
-	botId   string
 )
 
 func init() {
+	if _, err := os.Stat("logs"); os.IsNotExist(err) {
+		os.Mkdir("logs", os.ModePerm)
+	}
+
 	logPath, _ := filepath.Abs("logs/logs.txt")
 	LogFile, _ := os.OpenFile(logPath, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
 
@@ -29,6 +34,9 @@ func init() {
 }
 
 func main() {
+	defer logFile.Sync()
+	defer logFile.Close()
+
 	log.Info("Feed reader started")
 	filePath, err := filepath.Abs("config.json")
 	if err != nil {
@@ -42,90 +50,143 @@ func main() {
 	}
 
 	defer jsonFile.Close()
-	log.Info("No errors opening file")
+	log.Debug("No errors opening file")
 
 	byteValue, _ := io.ReadAll(jsonFile)
 	var config Config
 	unmarshalErr := json.Unmarshal(byteValue, &config)
 	if unmarshalErr != nil {
-		fmt.Println(unmarshalErr)
-	}
-
-	log.Info("Current config", config)
-
-	// // Create a new Discord session using the provided bot token.
-	dg, err := discordgo.New("Bot " + config.Token)
-	if err != nil {
-		fmt.Println(err.Error())
+		log.Fatal(unmarshalErr.Error())
 		return
 	}
 
-	u, err := dg.User("@me")
-	if err != nil {
-		fmt.Println(err.Error())
+	log.Info("Current config ", config)
+
+	// // Create a new Discord session using the provided bot token.
+	dg := createAndOpenDiscord(config.Token)
+	if dg == nil {
+		return
 	}
 
-	botId = u.ID
-
-	// err = dg.Open()
-
-	// if err != nil {
-	// 	fmt.Println(err.Error())
-	// 	return
-	// }
-
-	// fmt.Println("Bot is running!")
-	// fmt.Println("Starting RSS Feed")
+	log.Info("Bot is running!")
 
 	for _, feed := range config.Feeds {
+		log.Info("Starting feed for ", feed.FeedName)
+		fmt.Println("Starting feed for ", feed.FeedName)
 		go runRssFeed(dg, feed)
 	}
+
 	<-make(chan struct{})
-	defer logFile.Sync()
-	defer logFile.Close()
 	return
 	// Cleanly close down the Discord session.
 }
 
 func runRssFeed(s *discordgo.Session, feed Feed) {
-	fmt.Println("RSS Feed reader starting")
-	for ok := true; ok; ok = false {
-		message, _, err := rssFeed.RunFeed(feed.FeedURL, "")
-
+	for {
+		fmt.Println(fmt.Sprintf("Reading feed %s, at %s", feed.FeedName, time.Now().Format("1991 Jun 01")))
+		message, currentTitle, err := rssFeed.GetLatest(feed.FeedURL)
 		if err != nil {
-			log.Error("Error, ", err)
+			log.Error("Error, ", err.Error())
 		} else {
-			if len(message) == 0 {
-				log.Info("No message found, sleep time")
-			} else {
-				log.Info("New message, ", message)
-				log.Info("Attempting to send message")
-
-				s.ChannelMessageSend(feed.ChannelId, message)
-
-				log.Info("Message sent")
-			}
+			sendMessageString(s, feed, currentTitle, message)
 		}
 
-		log.Info("Sleep has began")
-		time.Sleep(10 * time.Second) // Change this to minute
-		log.Info("Sleep ended")
+		log.Debug("Sleep begin")
+		time.Sleep(time.Duration(feed.SleepTime) * time.Second) // Change this to minute
+		log.Debug("Sleep end")
 	}
 }
-
-func getLastTitle(feedName string) {
-	filePath := fmt.Sprintf("history/%s.txt", feedName)
-	absFilePath, _ := filepath.Abs(filePath)
-	historyFile, err := os.Open(absFilePath)
-
-	if err != nil {
-		log.Error(fmt.Sprintf("%s not found", filePath))
+func sendMessageString(s *discordgo.Session, feed Feed, currentTitle string, messageString string) {
+	if len(messageString) == 0 {
+		fmt.Println("No message found, sleep time")
+		log.Debug("No message found, sleep time")
 		return
 	}
 
-	historyFile.Close()
+	lastTitle := getLastTitle(feed.FeedName)
+	if strings.Compare(lastTitle, currentTitle) != 0 {
+		_, messageErr := s.ChannelMessageSend(feed.ChannelId, messageString)
+		if messageErr != nil {
+			fmt.Println("Message error", messageErr.Error())
+			log.Error(messageErr.Error())
+		} else {
+			log.Debug("Message sent")
+			fmt.Println("Message sent, ", feed.FeedName)
+		}
+
+		appendTitle(feed.FeedName, currentTitle)
+	} else {
+		log.Debug(fmt.Sprintf("Same title found, did not send message: '%s'", lastTitle))
+	}
+}
+func getLastTitle(feedName string) string {
+
+	filePath := fmt.Sprintf("history/%s.txt", feedName)
+	absFilePath, _ := filepath.Abs(filePath)
+	historyFile, err := os.Open(absFilePath)
+	defer historyFile.Close()
+
+	if err != nil {
+		log.Error(fmt.Sprintf("%s not found", filePath))
+		checkForDirectory("history", os.ModePerm)
+		return ""
+	}
+
+	return getLastString(historyFile)
 }
 
-func addTitle(feedName string) {
+func getLastString(file *os.File) string {
 
+	var fileStrings []string
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		fileStrings = append(fileStrings, scanner.Text())
+	}
+
+	lastTitle := fileStrings[len(fileStrings)-1]
+	log.Info("Last title found: ", lastTitle)
+	return lastTitle
+}
+
+func appendTitle(feedName string, title string) {
+	historyPath, _ := filepath.Abs(fmt.Sprintf("history/%s.txt", feedName))
+	log.Debug("Opening or creating file: ", historyPath)
+	historyFile, _ := os.OpenFile(historyPath, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
+
+	log.Debug("Writing new title:", title)
+	historyFile.WriteString(fmt.Sprintf("\r\n%s", title))
+	historyFile.Sync()
+	historyFile.Close()
+	log.Debug(fmt.Sprintf("%s closed", historyPath))
+}
+
+func checkForDirectory(directoryName string, mode os.FileMode) {
+
+	directoryPath, _ := filepath.Abs(directoryName)
+	if _, err := os.Stat(directoryPath); os.IsNotExist(err) {
+		log.Debug(fmt.Sprintf("Creating %s directory", directoryName))
+		os.Mkdir(directoryName, mode)
+	}
+
+}
+
+func createAndOpenDiscord(token string) *discordgo.Session {
+	dg, err := discordgo.New("Bot " + token)
+	if err != nil {
+		log.Fatal(err.Error())
+		return nil
+	}
+
+	_, err = dg.User("@me")
+	if err != nil {
+		log.Error(err.Error())
+	}
+
+	err = dg.Open()
+	if err != nil {
+		log.Fatal(err.Error())
+		return nil
+	}
+
+	return dg
 }
