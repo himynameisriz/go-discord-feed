@@ -8,7 +8,7 @@ import (
 
 	// "encoding/json"
 
-	"./RssFeed"
+	"./rssFeed"
 	"github.com/bwmarrin/discordgo"
 	log "github.com/sirupsen/logrus"
 )
