@@ -15,9 +15,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var LogFile *os.File
-
-var botId string
+var (
+	logFile *os.File
+	botId   string
+)
 
 func init() {
 	logPath, _ := filepath.Abs("logs/logs.txt")
@@ -80,8 +81,8 @@ func main() {
 		go runRssFeed(dg, feed)
 	}
 	<-make(chan struct{})
-	defer LogFile.Sync()
-	defer LogFile.Close()
+	defer logFile.Sync()
+	defer logFile.Close()
 	return
 	// Cleanly close down the Discord session.
 }
