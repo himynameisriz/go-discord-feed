@@ -84,11 +84,11 @@ func main() {
 func runRssFeed(s *discordgo.Session, feed Feed) {
 	for {
 		fmt.Println(fmt.Sprintf("Reading feed %s, at %s", feed.FeedName, time.Now().Format("1991 Jun 01")))
-		message, currentTitle, err := rssFeed.GetLatest(feed.FeedURL)
+		message, currentLink, err := rssFeed.GetLatest(feed.FeedURL)
 		if err != nil {
 			log.Error("Error, ", err.Error())
 		} else {
-			sendMessageString(s, feed, currentTitle, message)
+			sendMessageString(s, feed, currentLink, message)
 		}
 
 		log.Debug("Sleep begin")
@@ -96,15 +96,15 @@ func runRssFeed(s *discordgo.Session, feed Feed) {
 		log.Debug("Sleep end")
 	}
 }
-func sendMessageString(s *discordgo.Session, feed Feed, currentTitle string, messageString string) {
+func sendMessageString(s *discordgo.Session, feed Feed, currentLink string, messageString string) {
 	if len(messageString) == 0 {
 		fmt.Println("No message found, sleep time")
 		log.Debug("No message found, sleep time")
 		return
 	}
 
-	lastTitle := getLastTitle(feed.FeedName)
-	if strings.Compare(lastTitle, currentTitle) != 0 {
+	lastLink := getLastLink(feed.FeedName)
+	if strings.Compare(lastLink, currentLink) != 0 {
 		_, messageErr := s.ChannelMessageSend(feed.ChannelId, messageString)
 		if messageErr != nil {
 			fmt.Println("Message error", messageErr.Error())
@@ -114,12 +114,12 @@ func sendMessageString(s *discordgo.Session, feed Feed, currentTitle string, mes
 			fmt.Println("Message sent, ", feed.FeedName)
 		}
 
-		appendTitle(feed.FeedName, currentTitle)
+		appendLink(feed.FeedName, currentLink)
 	} else {
-		log.Debug(fmt.Sprintf("Same title found, did not send message: '%s'", lastTitle))
+		log.Debug(fmt.Sprintf("Same link found, did not send message: '%s'", lastLink))
 	}
 }
-func getLastTitle(feedName string) string {
+func getLastLink(feedName string) string {
 
 	filePath := fmt.Sprintf("history/%s.txt", feedName)
 	absFilePath, _ := filepath.Abs(filePath)
@@ -143,31 +143,29 @@ func getLastString(file *os.File) string {
 		fileStrings = append(fileStrings, scanner.Text())
 	}
 
-	lastTitle := fileStrings[len(fileStrings)-1]
-	log.Info("Last title found: ", lastTitle)
-	return lastTitle
+	lastLink := fileStrings[len(fileStrings)-1]
+	log.Debug("Last link found: ", lastLink)
+	return lastLink
 }
 
-func appendTitle(feedName string, title string) {
+func appendLink(feedName string, link string) {
 	historyPath, _ := filepath.Abs(fmt.Sprintf("history/%s.txt", feedName))
 	log.Debug("Opening or creating file: ", historyPath)
 	historyFile, _ := os.OpenFile(historyPath, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
 
-	log.Debug("Writing new title:", title)
-	historyFile.WriteString(fmt.Sprintf("\r\n%s", title))
+	log.Debug("Writing new link:", link)
+	historyFile.WriteString(fmt.Sprintf("\r\n%s", link))
 	historyFile.Sync()
 	historyFile.Close()
 	log.Debug(fmt.Sprintf("%s closed", historyPath))
 }
 
 func checkForDirectory(directoryName string, mode os.FileMode) {
-
 	directoryPath, _ := filepath.Abs(directoryName)
 	if _, err := os.Stat(directoryPath); os.IsNotExist(err) {
 		log.Debug(fmt.Sprintf("Creating %s directory", directoryName))
 		os.Mkdir(directoryName, mode)
 	}
-
 }
 
 func createAndOpenDiscord(token string) *discordgo.Session {

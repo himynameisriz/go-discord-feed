@@ -20,7 +20,7 @@ func GetLatestEmbed(rssFeed string) (Message, string, error) {
 	fmt.Println("Feed read", time.Now())
 	rssMessage := createMessage(feed.Items[0].Title, feed.Items[0].Link)
 	fmt.Println("Message created, ", rssMessage)
-	return rssMessage, feed.Items[0].Title, nil
+	return rssMessage, feed.Items[0].Link, nil
 }
 
 // Get the latest feed item as a string
@@ -36,7 +36,7 @@ func GetLatest(rssFeed string) (string, string, error) {
 	fmt.Println("Feed read", time.Now())
 	messageString := fmt.Sprintf("%s\r\n%s", feed.Items[0].Title, feed.Items[0].Link)
 	fmt.Println("Message created, ", messageString)
-	return messageString, feed.Items[0].Title, nil
+	return messageString, feed.Items[0].Link, nil
 }
 
 // Message object to send embedded messages
